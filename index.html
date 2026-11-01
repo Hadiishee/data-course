@@ -418,6 +418,99 @@
       }
       .r-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
       .r-author { font-size: 0.8rem; color: var(--fg-subtle); }
+
+      /* Monthly calendar for sessions */
+      #sessions-calendar { margin: 0 0 2rem; max-width: 40rem; }
+      .cal {
+        background: var(--bg-elevated);
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        padding: 1.1rem 1.2rem 1.3rem;
+      }
+      .cal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .cal-title { display: flex; flex-direction: column; align-items: center; gap: 0.1rem; }
+      .cal-nav {
+        display: grid;
+        place-items: center;
+        width: 2.1rem;
+        height: 2.1rem;
+        color: var(--fg-muted);
+        background: transparent;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+      }
+      .cal-nav:hover:not(:disabled) { color: #fff; background: var(--accent); border-color: var(--accent); }
+      .cal-nav:disabled { opacity: 0.35; cursor: default; }
+      .cal-cell.today { box-shadow: inset 0 0 0 1.5px var(--fg-muted); }
+      .cal-month { font-size: 1.15rem; font-weight: 700; }
+      .cal-count { font-size: 0.78rem; color: var(--fg-subtle); }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.35rem; }
+      .cal-dow {
+        text-align: center;
+        font-size: 0.72rem;
+        color: var(--fg-subtle);
+        padding-bottom: 0.3rem;
+      }
+      .cal-cell {
+        position: relative;
+        aspect-ratio: 1 / 1;
+        border-radius: 8px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: flex-end;
+        padding: 0.3rem 0.4rem;
+        font-size: 0.82rem;
+        color: var(--fg-muted);
+      }
+      .cal-cell.empty { background: transparent; }
+      .cal-cell.day { background: var(--bg-soft); }
+      .cal-cell.has {
+        background: var(--accent-soft);
+        border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+        color: var(--accent-ink);
+        font-weight: 700;
+        cursor: default;
+      }
+      .cal-cell .cal-badge {
+        position: absolute;
+        bottom: 0.3rem;
+        inset-inline-start: 0.4rem;
+        font-size: 0.62rem;
+        font-weight: 600;
+        color: var(--accent-ink);
+        background: color-mix(in srgb, var(--accent) 18%, transparent);
+        border-radius: 999px;
+        padding: 0.02rem 0.35rem;
+        line-height: 1.5;
+      }
+      .cal-cell.has::after {
+        content: "";
+        position: absolute;
+        top: 0.45rem;
+        inset-inline-start: 0.4rem;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      .cal-tbd {
+        margin-top: 0.9rem;
+        font-size: 0.8rem;
+        color: var(--fg-subtle);
+      }
+      .cal-tbd b { color: var(--fg-muted); font-weight: 600; }
+      @media (max-width: 460px) {
+        .cal-cell { font-size: 0.72rem; padding: 0.2rem 0.3rem; }
+        .cal-cell .cal-badge { font-size: 0.55rem; }
+      }
       .s-link {
         flex: none;
         font-family: var(--font-mono);
@@ -930,6 +1023,7 @@
           </span>
         </div>
         <h2>جلسه‌ها و همایش‌ها</h2>
+        <div id="sessions-calendar"></div>
         <ul class="track-list" id="sessions-list"><li class="people-loading">در حال بارگذاری…</li></ul>
         <div class="s-notes">
           <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
@@ -1524,6 +1618,128 @@
           el.innerHTML = "";
           items.forEach(function (x) { el.appendChild(make(x)); });
         }
+        // ----- Monthly (Jalali) calendar for the sessions -----
+        var FA_WEEKDAYS = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"];
+        var FA_DOW_SHORT = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+        var FA_MONTHS = {
+          "فروردین": 31, "اردیبهشت": 31, "خرداد": 31, "تیر": 31, "مرداد": 31, "شهریور": 31,
+          "مهر": 30, "آبان": 30, "آذر": 30, "دی": 30, "بهمن": 30, "اسفند": 29,
+        };
+        function faToLatin(s) {
+          return String(s).replace(/[۰-۹]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹".indexOf(d); });
+        }
+        function toFa(n) {
+          return String(n).replace(/[0-9]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹"[+d]; });
+        }
+        function esc(s) {
+          return (s || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+        function parseSessionDate(str) {
+          if (!str) return null;
+          var month = null;
+          for (var m in FA_MONTHS) { if (str.indexOf(m) !== -1) { month = m; break; } }
+          if (!month) return null;
+          var mm = str.match(new RegExp("([۰-۹0-9]{1,2})\\s*" + month));
+          if (!mm) return null;
+          var day = parseInt(faToLatin(mm[1]), 10);
+          if (!day) return null;
+          var weekday = null;
+          for (var i = 0; i < FA_WEEKDAYS.length; i++) {
+            if (str.indexOf(FA_WEEKDAYS[i]) !== -1) { weekday = i; break; }
+          }
+          return { day: day, month: month, weekday: weekday };
+        }
+        var MONTH_NAMES = Object.keys(FA_MONTHS);
+        // Today in the Jalali calendar, the anchor for every month's first weekday.
+        function jalaliToday() {
+          try {
+            var parts = new Intl.DateTimeFormat("en-u-ca-persian", { year: "numeric", month: "numeric", day: "numeric" })
+              .formatToParts(new Date());
+            var g = function (t) { return parseInt(parts.filter(function (p) { return p.type === t; })[0].value, 10); };
+            return { year: g("year"), month: g("month") - 1, day: g("day"), dow: (new Date().getDay() + 1) % 7 };
+          } catch (_) { return null; }
+        }
+        // Saturday-based weekday of day 1 of month index m (same Jalali year as today).
+        // ponytail: Esfand is fixed at 29 days; leap years and other years drift by a day.
+        function firstDowOf(m, today) {
+          var off = -(today.day - 1);
+          for (var i = Math.min(m, today.month); i < Math.max(m, today.month); i++) {
+            off += (m > today.month ? 1 : -1) * FA_MONTHS[MONTH_NAMES[i]];
+          }
+          return (((today.dow + off) % 7) + 7) % 7;
+        }
+        function renderCalendar(list) {
+          var el = document.getElementById("sessions-calendar");
+          var today = jalaliToday();
+          if (!el || !today) return;
+          var dated = [], tbd = [];
+          (list || []).forEach(function (s) {
+            var d = parseSessionDate(s.date);
+            if (d) { d.session = s; d.m = MONTH_NAMES.indexOf(d.month); dated.push(d); } else { tbd.push(s); }
+          });
+          if (!dated.length) { el.innerHTML = ""; return; }
+          // Browse from the first session month through next month (e.g. مهر → آذر).
+          var ms = dated.map(function (d) { return d.m; }).concat(today.month, Math.min(today.month + 1, 11));
+          var min = Math.min.apply(null, ms), max = Math.max.apply(null, ms);
+          var cur = today.month;
+          var chevron = function (d) {
+            return '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
+          };
+
+          function draw() {
+            var month = MONTH_NAMES[cur];
+            var byDay = {};
+            dated.forEach(function (d) { if (d.m === cur) byDay[d.day] = d.session; });
+            var count = Object.keys(byDay).length;
+            var h = '<div class="cal">';
+            h += '<div class="cal-head">' +
+              '<button type="button" class="cal-nav" data-step="-1" aria-label="ماه قبل"' + (cur <= min ? " disabled" : "") + ">" + chevron("m9 18 6-6-6-6") + "</button>" +
+              '<div class="cal-title"><span class="cal-month">' + month + " " + toFa(today.year) + "</span>" +
+              '<span class="cal-count">' + (count ? toFa(count) + " جلسه این ماه" : "جلسه‌ای در این ماه نیست") + "</span></div>" +
+              '<button type="button" class="cal-nav" data-step="1" aria-label="ماه بعد"' + (cur >= max ? " disabled" : "") + ">" + chevron("m15 18-6-6 6-6") + "</button>" +
+              "</div>";
+            h += '<div class="cal-grid">';
+            FA_DOW_SHORT.forEach(function (d) { h += '<div class="cal-dow">' + d + "</div>"; });
+            for (var i = 0; i < firstDowOf(cur, today); i++) h += '<div class="cal-cell empty"></div>';
+            for (var day = 1; day <= FA_MONTHS[month]; day++) {
+              var s = byDay[day];
+              var isToday = cur === today.month && day === today.day ? " today" : "";
+              if (s) {
+                var num = (s.type || "").replace("جلسه", "").trim();
+                h += '<div class="cal-cell has' + isToday + '" title="' + esc((s.type ? s.type + " — " : "") + (s.title || "")) +
+                  '">' + toFa(day) + '<span class="cal-badge">ج' + num + "</span></div>";
+              } else {
+                h += '<div class="cal-cell day' + isToday + '">' + toFa(day) + "</div>";
+              }
+            }
+            h += "</div>";
+            if (tbd.length) {
+              h += '<div class="cal-tbd"><b>بدون تاریخ (به‌زودی):</b> ' +
+                tbd.map(function (s) { return esc(s.type || s.title); }).join("، ") + "</div>";
+            }
+            h += "</div>";
+            el.innerHTML = h;
+          }
+          el.addEventListener("click", function (e) {
+            var b = e.target.closest(".cal-nav");
+            if (!b || b.disabled) return;
+            cur += +b.getAttribute("data-step");
+            draw();
+            var again = el.querySelector('.cal-nav[data-step="' + b.getAttribute("data-step") + '"]');
+            (again.disabled ? el.querySelector(".cal-nav:not([disabled])") : again).focus();
+          });
+          draw();
+        }
+        if (location.search.indexOf("selftest") !== -1) {
+          var pd = parseSessionDate("شنبه ۲۵ مهر، ساعت ۱۹");
+          console.assert(pd && pd.day === 25 && pd.month === "مهر" && pd.weekday === 0, "calendar: parse date");
+          console.assert(parseSessionDate("") === null, "calendar: empty date is null");
+          console.assert(((((0 - 24) % 7) + 7) % 7) === 4, "calendar: firstDow for 25=شنبه is 4");
+          console.assert(firstDowOf(7, { year: 1405, month: 7, day: 5, dow: 3 }) === 6, "calendar: 1 Aban 1405 is Friday");
+          console.assert(firstDowOf(6, { year: 1405, month: 7, day: 5, dow: 3 }) === 4, "calendar: 1 Mehr 1405 is Wednesday");
+          console.log("calendar selftest ok");
+        }
+
         // Each list lives in its own data/<name>.json and loads independently,
         // so one broken file doesn't blank the other sections.
         [
@@ -1535,7 +1751,10 @@
           var el = document.getElementById(x[0] + "-list");
           fetch("data/" + x[0] + ".json", { cache: "no-cache" })
             .then(function (r) { return r.json(); })
-            .then(function (list) { fillTrack(el, list, x[1]); })
+            .then(function (list) {
+              fillTrack(el, list, x[1]);
+              if (x[0] === "sessions") renderCalendar(list);
+            })
             .catch(function () { fill(el, []); });
         });
       })();
