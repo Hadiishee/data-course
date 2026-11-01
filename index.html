@@ -384,6 +384,19 @@
       .s-meta-item svg { flex: none; color: var(--accent); }
       .s-meta-item.pending { color: var(--fg-subtle); }
       .s-meta-item.pending svg { color: var(--fg-subtle); }
+      .s-notes {
+        margin: 1.25rem 0 0;
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.85rem 1rem;
+        border: 1px dashed var(--rule-strong);
+        border-radius: 10px;
+      }
+      .s-notes > svg { flex: none; color: var(--accent); }
+      .s-notes .n-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+      .s-notes strong { font-size: 0.95rem; }
+      .s-notes span { font-size: 0.82rem; color: var(--fg-subtle); }
       .sr-only {
         position: absolute;
         width: 1px;
@@ -917,6 +930,14 @@
         </div>
         <h2>جلسه‌ها و همایش‌ها</h2>
         <ul class="track-list" id="sessions-list"><li class="people-loading">در حال بارگذاری…</li></ul>
+        <div class="s-notes">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/></svg>
+          <div class="n-text">
+            <strong>جزوه‌ی کلاس‌ها</strong>
+            <span>جلسه‌ها رو از دست دادید یا می‌خواید مرور کنید؟ بچه‌های دوره جزوه‌ش رو آماده کردن.</span>
+          </div>
+          <a class="s-more" href="https://github.com/LaneZero/data-ai-engineering-course" target="_blank" rel="noopener">مشاهده‌ی جزوه</a>
+        </div>
       </section>
 
       <section class="course" id="projects">
